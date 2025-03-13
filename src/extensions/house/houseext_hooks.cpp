@@ -48,6 +48,7 @@
 #include "session.h"
 #include "ccini.h"
 #include "sideext.h"
+#include "addon.h"
 
 #include "hooker.h"
 #include "hooker_macros.h"
@@ -69,6 +70,7 @@ public:
     ProdFailType _Abandon_Production(RTTIType type, int id);
     int _AI_Building();
     int _Expert_AI();
+    void _Make_Base_Nodes();
     bool _Can_Build_Required_Forbidden_Houses(const TechnoTypeClass* techno_type);
 };
 
@@ -966,6 +968,195 @@ DECLARE_PATCH(_HouseClass_Can_Build_Multi_MCV_Patch)
     JMP(0x004BC0BD);
 }
 
+void HouseClassExt::_Make_Base_Nodes()
+{
+    int index;
+
+    bool is_gdi = stricmp(Class->IniName, "GDI") == 0;
+    bool is_nod = stricmp(Class->IniName, "NOD") == 0;
+
+    Base.Nodes.Clear();
+
+    BuildingTypeClass* plug = NULL;
+    if (Is_Addon_Available(ADDON_FIRESTORM)) {
+        int plugnum = Random_Pick(0, 2);
+        if (plugnum == 0) {
+            plug = BuildingTypes[BuildingTypeClass::From_Name("GAPLUG2")];
+        }
+        else if (plugnum == 1) {
+            plug = BuildingTypes[BuildingTypeClass::From_Name("GAPLUG3")];
+        }
+        else {
+            plug = BuildingTypes[BuildingTypeClass::From_Name("GAPLUG4")];
+        }
+    }
+
+    int ownable = 1 << HouseTypes.ID(Class);
+
+    DynamicVectorClass<BuildingTypeClass*> buildables;
+    DynamicVectorClass<bool> isadded;
+
+    for (index = 0; index < BuildingTypes.Count(); index++) {
+        BuildingTypeClass * builtype = BuildingTypes[index];
+        if (ownable & builtype->Ownable &&
+            builtype->CanAIBuildThis &&
+            builtype->TechLevel <= Control.TechLevel &&
+            (!builtype->IsWeeder || VeinholeMonsters.Count() > 0) &&
+            builtype != plug) {
+
+            buildables.Add(builtype);
+            isadded.Add(false);
+        }
+    }
+
+    int buildable_count = buildables.Count();
+    DynamicVectorClass<BuildingTypeClass *> startingqueue;
+
+    BuildingTypeClass * conyard = Rule->BuildConst[0];
+    for (index = 0; index < buildables.Count(); index++) {
+        if (conyard == buildables[index]) {
+            isadded[index] = true;
+            startingqueue.Add(conyard);
+            break;
+        }
+    }
+
+    startingqueue.Add(Get_First_Ownable(Rule->BuildPower));
+
+    BuildingTypeClass * barracks = Get_First_Ownable(Rule->BuildBarracks);
+    for (index = 0; index < buildables.Count(); index++) {
+        if (buildables[index] == barracks) {
+            BuildingTypeClass * temp = buildables[0];
+            buildables[0] = barracks;
+            isadded[index] = isadded[0];
+            isadded[0] = false;
+            buildables[index] = temp;
+            break;
+        }
+    }
+
+    BuildingTypeClass * weapons = Get_First_Ownable(Rule->BuildWeapons);
+    for (index = 0; index < buildables.Count(); index++) {
+        if (buildables[index] == weapons) {
+            BuildingTypeClass * temp = buildables[1];
+            buildables[1] = weapons;
+            isadded[index] = isadded[1];
+            isadded[1] = false;
+            buildables[index] = temp;
+            break;
+        }
+    }
+
+    int unprocessed = buildable_count - 1;
+    while (unprocessed > 0) {
+
+        int plugid = -1;
+        bool added = false;
+
+        for (index = 0; index < buildable_count; index++) {
+
+            if (isadded[index]) continue;
+
+            BuildingTypeClass * b = buildables[index];
+            if (stricmp(b->IniName, "GAPLUG") == 0) {
+                plugid = index;
+                continue;
+            }
+
+            if (Has_Prerequisites(b, startingqueue, startingqueue.Count())) {
+                isadded[index] = true;
+                startingqueue.Add(b);
+                if (b->IsHelipad) {
+                    int num = Random_Pick(1, 3);
+                    for (int i = 0; i < num; i++) {
+                        startingqueue.Add(b);
+                    }
+                }
+                added = true;
+                unprocessed--;
+            }
+        }
+
+        if (!added) {
+            if (plugid != -1) {
+                isadded[plugid] = true;
+                startingqueue.Add(buildables[plugid]);
+                unprocessed--;
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    int refcount = 3 - Difficulty;
+
+    BuildingTypeClass * ref = Get_First_Ownable(Rule->BuildRefinery);
+    int refpos = 0;
+    for (index = 0; index < startingqueue.Count() - 1; index++) {
+        if (startingqueue[index] == ref) {
+            if (refpos != -1 && refcount > 0) {
+                for (int i = 0; i < refcount; i++) {
+                    startingqueue.Insert(Random_Pick(refpos, startingqueue.Count() - 1), ref);
+                }
+            }
+            break;
+        }
+        refpos++;
+    }
+
+    DynamicVectorClass<BuildingTypeClass *> finalqueue;
+    finalqueue.Add(startingqueue[0]);
+    finalqueue.Add(startingqueue[1]);
+    finalqueue.Add(startingqueue[2]);
+
+    int defensecount = 0;
+    int buildcost = startingqueue[1]->Cost_Of(this) + startingqueue[2]->Cost_Of(this);
+
+    for (index = 3; index < startingqueue.Count(); index++) {
+        double cost = (int)((buildcost - 2000.0) / 1500.0 * field_10E30);
+        double wanted_defenses = is_nod ? cost * Rule->NodBaseDefenseCoefficient : cost * Rule->GDIBaseDefenseCoefficient;
+
+        if (defensecount < (int)wanted_defenses) {
+            int deficiency = (int)wanted_defenses - defensecount;
+            defensecount = wanted_defenses;
+            do {
+                if (is_gdi) {
+                    finalqueue.Add(Rule->WallTower);
+                }
+                finalqueue.Add((BuildingTypeClass *)-1);
+                deficiency--;
+            } while (deficiency);
+        }
+
+        finalqueue.Add(startingqueue[index]);
+        buildcost += startingqueue[index]->Cost_Of(this);
+    }
+
+    if (is_nod || !Rule->AIBuildsWalls) {
+        for (int count = (3 - Difficulty) * (is_gdi ? 3 : 2); count; count--) {
+            if (is_gdi) {
+                finalqueue.Add(Rule->WallTower);
+            }
+            finalqueue.Add((BuildingTypeClass *)-1);
+        }
+    }
+
+    for (index = 0; index < finalqueue.Count(); index++) {
+        BuildingTypeClass * b = finalqueue[index];
+        if ((int)b < 0 && (int)b >= -3) {
+            Base.Nodes.Add(BaseNodeClass((BuildingType)(int)b, Cell(0, 0)));
+        }
+        else {
+            Base.Nodes.Add(BaseNodeClass((BuildingType)b->Get_Heap_ID(), Cell(0, 0)));
+        }
+    }
+
+    if ((!is_nod || Rule->NodAIBuildsWalls) && Rule->AIBuildsWalls) {
+        Base.Nodes.Add(BaseNodeClass((BuildingType)-3, Cell(0, 0)));
+    }
+}
+
 
 /**
  *  Main function for patching the hooks.
@@ -993,4 +1184,5 @@ void HouseClassExtension_Hooks()
 
     Patch_Jump(0x004BAC2C, 0x004BAC39); // Patch a jump in the constructor to always allocate unit trackers
     Patch_Jump(0x004BC0B7, &_HouseClass_Can_Build_Multi_MCV_Patch);
+    Patch_Jump(0x004C5BB0, &HouseClassExt::_Make_Base_Nodes);
 }
