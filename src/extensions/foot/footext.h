@@ -51,12 +51,5 @@ class FootClassExtension : public TechnoClassExtension
         virtual FootClass *This() const override { return reinterpret_cast<FootClass *>(TechnoClassExtension::This()); }
         virtual const FootClass *This_Const() const override { return reinterpret_cast<const FootClass *>(TechnoClassExtension::This_Const()); }
 
-        virtual void Set_Last_Flight_Cell(Cell cell);
-        virtual Cell Get_Last_Flight_Cell();
-
     public:
-        /**
-         *  The last known flight cell of this object, used by the AircraftTracker.
-         */
-        Cell LastFlightCell;
 };

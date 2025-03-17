@@ -238,7 +238,7 @@ IFACEMETHODIMP_(Coordinate) TestLocomotionClass::Head_To_Coord()
     /**
      *  Return the current coordinate.
      */
-    return LinkedTo->Get_Coord();
+    return Linked_To()->Get_Coord();
 }
 
 
@@ -252,7 +252,7 @@ IFACEMETHODIMP_(MoveType) TestLocomotionClass::Can_Enter_Cell(Cell cell)
     /**
      *  Query the linked object to determine if the cell can be entered.
      */
-    return LinkedTo->Can_Enter_Cell(&Map[cell]);
+    return Linked_To()->Can_Enter_Cell(&Map[cell]);
 }
 
 
@@ -366,9 +366,9 @@ IFACEMETHODIMP_(bool) TestLocomotionClass::Process()
         /**
          *  Pickup the object the game world before we set the new coord.
          */
-        LinkedTo->Mark(MARK_UP);
+        Linked_To()->Mark(MARK_UP);
         if (Can_Enter_Cell(Coord_Cell(coord)) == MOVE_OK) {
-            LinkedTo->Set_Coord(coord);
+            Linked_To()->Set_Coord(coord);
 
             /**
              *  Increase the angle, wrapping if full circle is complete.
@@ -379,7 +379,7 @@ IFACEMETHODIMP_(bool) TestLocomotionClass::Process()
                 Angle = 0;
             }
         }
-        LinkedTo->Mark(MARK_DOWN);
+        Linked_To()->Mark(MARK_DOWN);
     }
 
     return Is_Moving();
@@ -429,7 +429,7 @@ IFACEMETHODIMP_(void) TestLocomotionClass::Stop_Moving()
  */
 IFACEMETHODIMP_(void) TestLocomotionClass::Do_Turn(DirStruct coord)
 {
-    LinkedTo->PrimaryFacing.Set(coord);
+    Linked_To()->PrimaryFacing.Set(coord);
 }
 
 
@@ -443,7 +443,7 @@ IFACEMETHODIMP_(void) TestLocomotionClass::Unlimbo()
     /**
      *  Set the objects ramp for redraw.
      */
-    Force_New_Slope(LinkedTo->Get_Cell_Ptr()->Ramp);
+    Force_New_Slope(Linked_To()->Get_Cell_Ptr()->Ramp);
 }
 
 
@@ -572,7 +572,7 @@ IFACEMETHODIMP_(void) TestLocomotionClass::Force_New_Slope(int ramp)
  */
 IFACEMETHODIMP_(bool) TestLocomotionClass::Is_Moving_Now()
 {
-    if (LinkedTo->PrimaryFacing.Is_Rotating()) {
+    if (Linked_To()->PrimaryFacing.Is_Rotating()) {
         return true;
     }
 
@@ -591,7 +591,7 @@ IFACEMETHODIMP_(bool) TestLocomotionClass::Is_Moving_Now()
  */
 IFACEMETHODIMP_(int) TestLocomotionClass::Apparent_Speed()
 {
-    return LinkedTo->Current_Speed();
+    return Linked_To()->Current_Speed();
 }
 
 
@@ -658,9 +658,9 @@ IFACEMETHODIMP_(void) TestLocomotionClass::Mark_All_Occupation_Bits(int mark)
 {
     Coordinate headto = Head_To_Coord();
     if (mark != 0) {
-        LinkedTo->Set_Occupy_Bit(headto);
+        Linked_To()->Set_Occupy_Bit(headto);
     } else {
-        LinkedTo->Clear_Occupy_Bit(headto);
+        Linked_To()->Clear_Occupy_Bit(headto);
     }
 }
 

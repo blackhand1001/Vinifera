@@ -38,7 +38,6 @@
 #include "ccini.h"
 #include "endgame.h"
 #include "addon.h"
-#include "aircrafttracker.h"
 #include "fatal.h"
 #include "debughandler.h"
 #include "asserthandler.h"
@@ -98,7 +97,6 @@ DECLARE_PATCH(_Clear_Scenario_Patch)
     ScenExtension->Clear_All_Waypoints();
 
     KamikazeTracker->Clear();
-    AircraftTracker->Clear();
 
     JMP(0x005DC872);
 }

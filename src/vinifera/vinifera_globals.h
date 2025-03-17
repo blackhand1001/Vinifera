@@ -33,7 +33,6 @@
 
 
 class KamikazeTrackerClass;
-class AircraftTrackerClass;
 class SpawnManagerClass;
 class EBoltClass;
 class TheaterTypeClass;
@@ -103,7 +102,6 @@ extern MFCC *GenericMix;
 extern MFCC *IsoGenericMix;
 
 extern KamikazeTrackerClass *KamikazeTracker;
-extern AircraftTrackerClass *AircraftTracker;
 
 
 /**

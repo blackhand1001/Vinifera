@@ -125,25 +125,3 @@ void FootClassExtension::Compute_CRC(WWCRCEngine &crc) const
 
     TechnoClassExtension::Compute_CRC(crc);
 }
-
-
-/**
- *  Sets the last known flight cell of this object.
- *
- *  @author: ZivDero
- */
-void FootClassExtension::Set_Last_Flight_Cell(Cell cell)
-{
-    LastFlightCell = cell;
-}
-
-
-/**
- *  Gets the last known flight cell of this object.
- *
- *  @author: ZivDero
- */
-Cell FootClassExtension::Get_Last_Flight_Cell()
-{
-    return LastFlightCell;
-}

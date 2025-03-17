@@ -58,7 +58,6 @@
 #include "asserthandler.h"
 #include <string>
 
-#include "aircrafttracker.h"
 #include "rocketlocomotion.h"
 #include "setup_hooks.h"
 
@@ -638,7 +637,6 @@ bool Vinifera_Startup()
 #endif
 
     KamikazeTracker = new KamikazeTrackerClass;
-    AircraftTracker = new AircraftTrackerClass;
 
     return true;
 }
@@ -685,9 +683,6 @@ bool Vinifera_Shutdown()
 
     delete KamikazeTracker;
     KamikazeTracker = nullptr;
-
-    delete AircraftTracker;
-    AircraftTracker = nullptr;
 
     DEV_DEBUG_INFO("Shutdown - New Count: %d, Delete Count: %d\n", Vinifera_New_Count, Vinifera_Delete_Count);
 
