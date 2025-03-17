@@ -979,7 +979,7 @@ void HouseClassExt::_Make_Base_Nodes()
 
     BuildingTypeClass* plug = NULL;
     if (Is_Addon_Available(ADDON_FIRESTORM)) {
-        int plugnum = Random_Pick(0, 2);
+        int plugnum = Random_Pick(2, 2);
         if (plugnum == 0) {
             plug = BuildingTypes[BuildingTypeClass::From_Name("GAPLUG2")];
         }
@@ -1000,7 +1000,7 @@ void HouseClassExt::_Make_Base_Nodes()
         BuildingTypeClass * builtype = BuildingTypes[index];
         if (ownable & builtype->Ownable &&
             builtype->CanAIBuildThis &&
-            builtype->TechLevel <= Control.TechLevel &&
+            (builtype->TechLevel <= Control.TechLevel || builtype->TechLevel > 32) &&
             (!builtype->IsWeeder || VeinholeMonsters.Count() > 0) &&
             builtype != plug) {
 
@@ -1022,7 +1022,7 @@ void HouseClassExt::_Make_Base_Nodes()
     }
 
     startingqueue.Add(Get_First_Ownable(Rule->BuildPower));
-
+    /*
     BuildingTypeClass * barracks = Get_First_Ownable(Rule->BuildBarracks);
     for (index = 0; index < buildables.Count(); index++) {
         if (buildables[index] == barracks) {
@@ -1046,6 +1046,7 @@ void HouseClassExt::_Make_Base_Nodes()
             break;
         }
     }
+    */
 
     int unprocessed = buildable_count - 1;
     while (unprocessed > 0) {
@@ -1089,7 +1090,7 @@ void HouseClassExt::_Make_Base_Nodes()
         }
     }
 
-    int refcount = 3 - Difficulty;
+    int refcount = 2 - Difficulty;
 
     BuildingTypeClass * ref = Get_First_Ownable(Rule->BuildRefinery);
     int refpos = 0;
@@ -1109,6 +1110,12 @@ void HouseClassExt::_Make_Base_Nodes()
     finalqueue.Add(startingqueue[0]);
     finalqueue.Add(startingqueue[1]);
     finalqueue.Add(startingqueue[2]);
+
+
+    BuildingTypeClass* AA = Get_First_Ownable(Rule->BuildAA);
+    if (AA && AA->TechLevel <= Control.TechLevel)
+        for (int i = 0; i < 4; i++)
+            finalqueue.Add(Get_First_Ownable(Rule->BuildAA));
 
     int defensecount = 0;
     int buildcost = startingqueue[1]->Cost_Of(this) + startingqueue[2]->Cost_Of(this);
